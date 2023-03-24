@@ -1,0 +1,5 @@
+This is a descriptive file; no code.
+
+Notes:
+1. The Bulk Load file contains file locations. I was having issues using Python to create the script, so I used Excel's concatenation function to create the script.
+2. It took about 12.5 minutes to load the Bulk Load data into SQL Server. 
