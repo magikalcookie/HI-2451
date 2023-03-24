@@ -102,7 +102,7 @@ dose_freq,
 start_dt, 
 end_dt, 
 dur, 
-dur_cod, 
+dur_cod
 FROM DEMO_COMBINED JOIN DRUG_COMBINED ON DRUG_COMBINED.primaryid = DEMO_COMBINED.primaryid   
 JOIN THER_COMBINED ON THER_COMBINED.primaryid = DRUG_COMBINED.primaryid  
 JOIN INDI_COMBINED ON INDI_COMBINED.primaryid = DRUG_COMBINED.primaryid  
