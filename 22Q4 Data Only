@@ -51,3 +51,15 @@ SELECT * INTO ALL22Q4 FROM
 (SELECT DEMOREACOUTCRPSR22Q4.primaryid, DEMOREACOUTCRPSR22Q4.caseid, caseversion, i_f_code, event_dt, mfr_dt, init_fda_dt, fda_dt, rept_cod, auth_num, mfr_num, mfr_sndr, lit_ref, age, age_cod, age_grp, sex, e_sub, wt, wt_cod, rept_dt, to_mfr, occp_cod, reporter_country, occr_country, pt, drug_rec_act, outc_cod, rpsr_cod,
 drug_seq, dsg_drug_seq, indi_drug_seq, indi_pt, role_cod, drugname, prod_ai, val_vbm, route_ad, dose_vbm, cum_dose_chr, cum_dose_unit, dechal, rechal, lot_num, exp_dt, nda_num, dose_amt, dose_unit, dose_form, dose_freq, start_dt, end_dt, dur, dur_cod
 FROM DEMOREACOUTCRPSR22Q4 LEFT JOIN DRUGTHERINDI22Q4 ON DEMOREACOUTCRPSR22Q4.primaryid = DRUGTHERINDI22Q4.primaryid)a; 
+
+--Created a table with select attributes (see email chain)
+SELECT * INTO MOD22Q4 FROM
+(SELECT 
+primaryid, caseid, caseversion, drug_seq, dsg_drug_seq, indi_drug_seq,
+age, age_cod, age_grp, sex, reporter_country, wt, wt_cod,
+role_cod, drugname, prod_ai, route_ad, dose_vbm, cum_dose_chr, cum_dose_unit, dechal, rechal, dose_amt, dose_unit, dose_form, dose_freq,
+pt, drug_rec_act,
+indi_pt,
+outc_cod,
+dur, dur_cod
+FROM ALL22Q4)a;
