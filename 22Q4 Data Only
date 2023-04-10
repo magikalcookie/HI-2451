@@ -1,0 +1,53 @@
+--4/10/2023: Use this script for final project
+----Create Database (if applicable)
+-- CREATE DATABASE FAERS;
+
+----Create Tables (22Q4 only)
+DROP  TABLE IF EXISTS DEMO22Q4 CREATE TABLE DEMO22Q4(primaryid VARCHAR(100) NOT NULL UNIQUE,caseid INTEGER,caseversion INTEGER,i_f_code VARCHAR(1),event_dt VARCHAR(8),mfr_dt VARCHAR(8),init_fda_dt VARCHAR(8),fda_dt VARCHAR(8),rept_cod VARCHAR(9),auth_num VARCHAR(500),mfr_num VARCHAR(500),mfr_sndr VARCHAR(300),lit_ref VARCHAR(1000),age NUMERIC,age_cod VARCHAR(7),age_grp VARCHAR(15),sex VARCHAR(5),e_sub CHAR(1),wt NUMERIC,wt_cod VARCHAR(20),rept_dt VARCHAR(8),to_mfr VARCHAR(100),occp_cod VARCHAR(300),reporter_country VARCHAR(500),occr_country VARCHAR(20) PRIMARY KEY (primaryid));
+DROP  TABLE IF EXISTS DRUG22Q4 CREATE TABLE DRUG22Q4(primaryid VARCHAR(100) NOT NULL,caseid INTEGER,drug_seq INTEGER,role_cod VARCHAR(22),drugname VARCHAR(500),prod_ai VARCHAR(500),val_vbm VARCHAR(22),route_ad VARCHAR(500),dose_vbm VARCHAR(1000),cum_dose_chr VARCHAR(15),cum_dose_unit VARCHAR(50),dechal VARCHAR(20),rechal VARCHAR(20),lot_num VARCHAR(1000),exp_dt VARCHAR(1000),nda_num VARCHAR(100),dose_amt VARCHAR(15),dose_unit VARCHAR(50),dose_form VARCHAR(50),dose_freq VARCHAR(50) FOREIGN KEY (primaryid) REFERENCES DEMO22Q4);
+DROP  TABLE IF EXISTS REAC22Q4 CREATE TABLE REAC22Q4(primaryid VARCHAR(100),caseid INTEGER,pt VARCHAR(500),drug_rec_act VARCHAR(500) FOREIGN KEY (primaryid) REFERENCES DEMO22Q4);
+DROP  TABLE IF EXISTS OUTC22Q4 CREATE TABLE OUTC22Q4(primaryid VARCHAR(100),caseid INTEGER,OUTC_COD VARCHAR(4000) FOREIGN KEY (primaryid) REFERENCES DEMO22Q4);
+DROP  TABLE IF EXISTS RPSR22Q4 CREATE TABLE RPSR22Q4(primaryid VARCHAR(100),caseid INTEGER,rpsr_cod VARCHAR(32) FOREIGN KEY (primaryid) REFERENCES DEMO22Q4);
+DROP  TABLE IF EXISTS THER22Q4 CREATE TABLE THER22Q4(primaryid VARCHAR(100),caseid INTEGER,dsg_drug_seq INTEGER,start_dt VARCHAR(8),end_dt VARCHAR(8),dur NUMERIC,dur_cod VARCHAR(500) FOREIGN KEY (primaryid) REFERENCES DEMO22Q4);
+DROP  TABLE IF EXISTS INDI22Q4 CREATE TABLE INDI22Q4(primaryid VARCHAR(100),caseid INTEGER,indi_drug_seq INTEGER,indi_pt VARCHAR(1000) FOREIGN KEY (primaryid) REFERENCES DEMO22Q4);
+
+----Load Data (22Q4 only)
+BULK INSERT DEMO22Q4 FROM 'C:\Users\Audrey\Downloads\HI 2451 Final Project\faers_ascii_2022Q4\ASCII\DEMO22Q4.TXT' WITH  ( FIRSTROW = 2, FIELDTERMINATOR = '$',  ROWTERMINATOR='0x0A');
+BULK INSERT DRUG22Q4 FROM 'C:\Users\Audrey\Downloads\HI 2451 Final Project\faers_ascii_2022Q4\ASCII\DRUG22Q4.TXT' WITH  ( FIRSTROW = 2, FIELDTERMINATOR = '$',  ROWTERMINATOR='0x0A');
+BULK INSERT REAC22Q4 FROM 'C:\Users\Audrey\Downloads\HI 2451 Final Project\faers_ascii_2022Q4\ASCII\REAC22Q4.TXT' WITH  ( FIRSTROW = 2, FIELDTERMINATOR = '$',  ROWTERMINATOR='0x0A');
+BULK INSERT THER22Q4 FROM 'C:\Users\Audrey\Downloads\HI 2451 Final Project\faers_ascii_2022Q4\ASCII\THER22Q4.TXT' WITH  ( FIRSTROW = 2, FIELDTERMINATOR = '$',  ROWTERMINATOR='0x0A');
+BULK INSERT RPSR22Q4 FROM 'C:\Users\Audrey\Downloads\HI 2451 Final Project\faers_ascii_2022Q4\ASCII\RPSR22Q4.TXT' WITH  ( FIRSTROW = 2, FIELDTERMINATOR = '$',  ROWTERMINATOR='0x0A');
+BULK INSERT OUTC22Q4 FROM 'C:\Users\Audrey\Downloads\HI 2451 Final Project\faers_ascii_2022Q4\ASCII\OUTC22Q4.TXT' WITH  ( FIRSTROW = 2, FIELDTERMINATOR = '$',  ROWTERMINATOR='0x0A');
+BULK INSERT INDI22Q4 FROM 'C:\Users\Audrey\Downloads\HI 2451 Final Project\faers_ascii_2022Q4\ASCII\INDI22Q4.TXT' WITH  ( FIRSTROW = 2, FIELDTERMINATOR = '$',  ROWTERMINATOR='0x0A');
+
+----Combine all tables based on entity-relationship diagram
+--Combine DRUG & THER Tables
+SELECT * INTO DRUGTHER22Q4 FROM 
+(SELECT DRUG22Q4.primaryid, DRUG22Q4.caseid, drug_seq, dsg_drug_seq, role_cod, drugname, prod_ai, val_vbm, route_ad, dose_vbm, cum_dose_chr, cum_dose_unit, dechal, rechal, lot_num, exp_dt, nda_num, dose_amt, dose_unit, dose_form, dose_freq, start_dt, end_dt, dur, dur_cod
+FROM DRUG22Q4 LEFT JOIN THER22Q4 ON DRUG22Q4.caseid = THER22Q4.caseid AND DRUG22Q4.drug_seq = THER22Q4.dsg_drug_seq )a; 
+
+--Combine DRUGTHER & INDI Tables
+SELECT * INTO DRUGTHERINDI22Q4 FROM 
+(SELECT DRUGTHER22Q4.primaryid, DRUGTHER22Q4.caseid, drug_seq, dsg_drug_seq, indi_drug_seq, indi_pt, role_cod, drugname, prod_ai, val_vbm, route_ad, dose_vbm, cum_dose_chr, cum_dose_unit, dechal, rechal, lot_num, exp_dt, nda_num, dose_amt, dose_unit, dose_form, dose_freq, start_dt, end_dt, dur, dur_cod
+FROM DRUGTHER22Q4 LEFT JOIN INDI22Q4 ON DRUGTHER22Q4.caseid = INDI22Q4.caseid AND DRUGTHER22Q4.drug_seq = INDI22Q4.indi_drug_seq)a; 
+
+--Combine DEMO & REAC Tables
+SELECT * INTO DEMOREAC22Q4 FROM 
+(SELECT DEMO22Q4.primaryid, DEMO22Q4.caseid, caseversion, i_f_code, event_dt, mfr_dt, init_fda_dt, fda_dt, rept_cod, auth_num, mfr_num, mfr_sndr, lit_ref, age, age_cod, age_grp, sex, e_sub, wt, wt_cod, rept_dt, to_mfr, occp_cod, reporter_country, occr_country, pt, drug_rec_act
+FROM DEMO22Q4 LEFT JOIN REAC22Q4 ON DEMO22Q4.primaryid = REAC22Q4.primaryid)a; 
+
+--Combine DEMOREAC & OUTC Tables
+SELECT * INTO DEMOREACOUTC22Q4 FROM
+(SELECT DEMOREAC22Q4.primaryid, DEMOREAC22Q4.caseid, caseversion, i_f_code, event_dt, mfr_dt, init_fda_dt, fda_dt, rept_cod, auth_num, mfr_num, mfr_sndr, lit_ref, age, age_cod, age_grp, sex, e_sub, wt, wt_cod, rept_dt, to_mfr, occp_cod, reporter_country, occr_country, pt, drug_rec_act, outc_cod
+FROM DEMOREAC22Q4 LEFT JOIN OUTC22Q4 ON DEMOREAC22Q4.primaryid = OUTC22Q4.primaryid)a; 
+
+--Combine DEMOREACOUTC & RPSR Tables
+SELECT * INTO DEMOREACOUTCRPSR22Q4 FROM
+(SELECT DEMOREACOUTC22Q4.primaryid, DEMOREACOUTC22Q4.caseid, caseversion, i_f_code, event_dt, mfr_dt, init_fda_dt, fda_dt, rept_cod, auth_num, mfr_num, mfr_sndr, lit_ref, age, age_cod, age_grp, sex, e_sub, wt, wt_cod, rept_dt, to_mfr, occp_cod, reporter_country, occr_country, pt, drug_rec_act, outc_cod, rpsr_cod
+FROM DEMOREACOUTC22Q4 LEFT JOIN RPSR22Q4 ON DEMOREACOUTC22Q4.primaryid = RPSR22Q4.primaryid)a; 
+
+--Combine DEMOREACOUTCRPSR & DRUGTHERINDI Tables
+SELECT * INTO ALL22Q4 FROM
+(SELECT DEMOREACOUTCRPSR22Q4.primaryid, DEMOREACOUTCRPSR22Q4.caseid, caseversion, i_f_code, event_dt, mfr_dt, init_fda_dt, fda_dt, rept_cod, auth_num, mfr_num, mfr_sndr, lit_ref, age, age_cod, age_grp, sex, e_sub, wt, wt_cod, rept_dt, to_mfr, occp_cod, reporter_country, occr_country, pt, drug_rec_act, outc_cod, rpsr_cod,
+drug_seq, dsg_drug_seq, indi_drug_seq, indi_pt, role_cod, drugname, prod_ai, val_vbm, route_ad, dose_vbm, cum_dose_chr, cum_dose_unit, dechal, rechal, lot_num, exp_dt, nda_num, dose_amt, dose_unit, dose_form, dose_freq, start_dt, end_dt, dur, dur_cod
+FROM DEMOREACOUTCRPSR22Q4 LEFT JOIN DRUGTHERINDI22Q4 ON DEMOREACOUTCRPSR22Q4.primaryid = DRUGTHERINDI22Q4.primaryid)a; 
