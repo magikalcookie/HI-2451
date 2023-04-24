@@ -158,3 +158,165 @@ ALTER TABLE INDICATION
 ALTER COLUMN indi_id INT NOT NULL;
 ALTER TABLE INDICATION
 ADD CONSTRAINT pk_constraint_indication PRIMARY KEY (indi_id);
+
+--Create new adverse reaction table
+SELECT * INTO REACTION_NEW FROM
+(
+SELECT DISTINCT pt
+FROM TBIDATA
+)a;
+SELECT * INTO REACTION FROM
+(SELECT DISTINCT pt, ROW_NUMBER() OVER (ORDER BY pt) AS pt_id
+FROM REACTION_NEW
+)a;
+ALTER TABLE REACTION
+ALTER COLUMN pt_id INT NOT NULL;
+ALTER TABLE REACTION
+ADD CONSTRAINT pk_constraint_reaction PRIMARY KEY (pt_id);
+
+--Create new demographic table
+SELECT * INTO DEMOGRAPHIC FROM
+(
+SELECT DISTINCT primaryid, caseid, caseversion, age, age_cod, age_grp, sex, wt, wt_cod, reporter_country, mfr_sndr
+FROM TBIDATA
+)a;
+ALTER TABLE DEMOGRAPHIC
+ADD CONSTRAINT pk_constraint_demo PRIMARY KEY (primaryid);
+
+--Create new "reaction event" table
+SELECT * INTO REACTIONEVENT_NEW FROM
+(
+SELECT DISTINCT primaryid, pt
+FROM TBIDATA
+)a;
+SELECT * INTO REACTIONEVENT FROM
+(SELECT DISTINCT primaryid, ROW_NUMBER() OVER (ORDER BY primaryid) AS reactevent_id, pt_id
+FROM REACTIONEVENT_NEW JOIN REACTION ON REACTIONEVENT_NEW.pt = REACTION.pt
+)a;
+ALTER TABLE REACTIONEVENT
+ALTER COLUMN reactevent_id INT NOT NULL;
+ALTER TABLE REACTIONEVENT
+ADD CONSTRAINT pk_constraint_reactevent PRIMARY KEY (reactevent_id);
+
+
+--Add foreign keys to REACTIONEVENT table
+ALTER TABLE REACTIONEVENT
+ADD CONSTRAINT fk_reactionevent_primaryid
+FOREIGN KEY (primaryid) REFERENCES DEMOGRAPHIC (primaryid);
+ALTER TABLE REACTIONEVENT
+ADD CONSTRAINT fk_reactionevent_pt
+FOREIGN KEY (pt_id) REFERENCES REACTION (pt_id);
+
+--Create new "outcome event" table
+SELECT * INTO OUTCOMEEVENT_NEW FROM
+(
+SELECT DISTINCT primaryid, outc_cod
+FROM TBIDATA
+)a;
+SELECT * INTO OUTCOMEEVENT FROM
+(SELECT DISTINCT primaryid, ROW_NUMBER() OVER (ORDER BY primaryid) AS outcomeevent_id, outc_cod
+FROM OUTCOMEEVENT_NEW
+)a;
+ALTER TABLE OUTCOMEEVENT
+ALTER COLUMN outcomeevent_id INT NOT NULL;
+ALTER TABLE OUTCOMEEVENT
+ADD CONSTRAINT pk_constraint_outcome PRIMARY KEY (outcomeevent_id);
+
+--Add foreign keys to OUTCOMEEVENT table
+ALTER TABLE OUTCOMEEVENT
+ADD CONSTRAINT fk_outcomeevent_primaryid
+FOREIGN KEY (primaryid) REFERENCES DEMOGRAPHIC (primaryid);
+
+--Create Indication Event table
+SELECT * INTO INDICATIONEVENT_NEW FROM
+(
+SELECT DISTINCT primaryid, indi_drug_seq, indi_pt
+FROM TBIDATA
+WHERE indi_drug_seq IS NOT NULL
+)a;
+SELECT * INTO INDICATIONEVENT FROM
+(SELECT ROW_NUMBER() OVER (ORDER BY primaryid) AS indievent_id, primaryid, indi_drug_seq, indi_id
+FROM INDICATIONEVENT_NEW JOIN INDICATION ON INDICATIONEVENT_NEW.indi_pt = INDICATION.indi_pt
+)a;
+ALTER TABLE INDICATIONEVENT
+ADD CONSTRAINT fk_indicationevent_indiid
+FOREIGN KEY (indi_id) REFERENCES INDICATION (indi_id);
+
+--Create Therapy Event table
+SELECT * INTO THERAPYEVENT_NEW FROM
+(
+SELECT DISTINCT primaryid, dsg_drug_seq, dur, dur_cod
+FROM TBIDATA
+WHERE dsg_drug_seq IS NOT NULL
+AND
+dur IS NOT NULL
+)a;
+SELECT * INTO THERAPYEVENT FROM
+(SELECT ROW_NUMBER() OVER (ORDER BY primaryid) AS therevent_id, primaryid, dsg_drug_seq, dur, dur_cod
+FROM THERAPYEVENT_NEW
+)a;
+
+--Create Drug Event table
+SELECT * INTO DRUGEVENT_NEW FROM
+(
+SELECT DISTINCT primaryid, drug_seq, role_cod, drugname, route_ad, dose_vbm,
+cum_dose_chr, cum_dose_unit, dechal, rechal, dose_amt, dose_unit, dose_form,
+dose_freq
+FROM TBIDATA
+)a;
+SELECT * INTO DRUGEVENT FROM
+(SELECT ROW_NUMBER() OVER (ORDER BY primaryid) AS drugevent_id, 
+primaryid, drug_seq, role_cod, drug_id, route_ad, dose_vbm,
+cum_dose_chr, cum_dose_unit, dechal, rechal, dose_amt, dose_unit, dose_form,
+dose_freq
+FROM DRUGEVENT_NEW JOIN DRUG ON DRUGEVENT_NEW.drugname = DRUG.drugname
+)a;
+
+ALTER TABLE DRUGEVENT
+ALTER COLUMN drugevent_id INT NOT NULL;
+ALTER TABLE DRUGEVENT
+ADD CONSTRAINT pk_constraint_drug PRIMARY KEY (drugevent_id);
+
+--Add foreign keys to DRUGEVENT table
+ALTER TABLE DRUGEVENT
+ADD CONSTRAINT fk_drugevent_drugid
+FOREIGN KEY (drug_id) REFERENCES DRUG (drug_id);
+ALTER TABLE DRUGEVENT
+ADD CONSTRAINT fk_drugevent_primaryid
+FOREIGN KEY (primaryid) REFERENCES DEMOGRAPHIC (primaryid);
+
+--Change table names to add DRUGEVENT foreign key
+sp_rename 'THERAPYEVENT', 'THERAPYEVENT_REVISE';
+sp_rename 'INDICATIONEVENT', 'INDICATIONEVENT_REVISE';
+
+--Recreate THERAPYEVENT table
+SELECT * INTO THERAPYEVENT FROM
+(SELECT therevent_id, THERAPYEVENT_REVISE.primaryid, dsg_drug_seq, dur, dur_cod, drugevent_id
+FROM THERAPYEVENT_REVISE JOIN DRUGEVENT ON THERAPYEVENT_REVISE.primaryid = DRUGEVENT.primaryid
+AND THERAPYEVENT_REVISE.dsg_drug_seq = DRUGEVENT.drug_seq
+)a;
+
+--Recreate INDICATIONEVENT table
+SELECT * INTO INDICATIONEVENT FROM
+(SELECT indievent_id, INDICATIONEVENT_REVISE.primaryid, indi_drug_seq, indi_id, drugevent_id
+FROM INDICATIONEVENT_REVISE JOIN DRUGEVENT ON INDICATIONEVENT_REVISE.primaryid = DRUGEVENT.primaryid
+AND INDICATIONEVENT_REVISE.indi_drug_seq = DRUGEVENT.drug_seq
+)a;
+
+--Create PKs and FKs for THERAPYEVENT an INDICATIONEVENT tables
+ALTER TABLE THERAPYEVENT
+ALTER COLUMN therevent_id INT NOT NULL;
+ALTER TABLE INDICATIONEVENT
+ALTER COLUMN indievent_id INT NOT NULL;
+
+ALTER TABLE THERAPYEVENT
+ADD CONSTRAINT pk_constraint_therapy PRIMARY KEY (therevent_id);
+ALTER TABLE INDICATIONEVENT
+ADD CONSTRAINT pk_constraint_indicationevent PRIMARY KEY (indievent_id);
+
+ALTER TABLE THERAPYEVENT
+ADD CONSTRAINT fk_therapyevent_drugeventid
+FOREIGN KEY (drugevent_id) REFERENCES DRUGEVENT (drugevent_id);
+ALTER TABLE INDICATIONEVENT
+ADD CONSTRAINT fk_indicationevent_drugeventid
+FOREIGN KEY (drugevent_id) REFERENCES DRUGEVENT (drugevent_id);
