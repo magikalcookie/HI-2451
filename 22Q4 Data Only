@@ -113,20 +113,13 @@ WHERE primaryid IN
 )a;
 
 --Uppercase the values
-UPDATE TBIDATA
-SET mfr_sndr = UPPER(mfr_sndr);
-UPDATE TBIDATA
-SET drugname = UPPER(drugname);
-UPDATE TBIDATA
-SET prod_ai = UPPER(prod_ai);
-UPDATE TBIDATA
-SET route_ad = UPPER(route_ad);
-UPDATE TBIDATA
-SET dose_form = UPPER(dose_form);
-UPDATE TBIDATA
-SET pt = UPPER(pt);
-UPDATE TBIDATA
-SET indi_pt = UPPER(indi_pt);
+UPDATE TBIDATA SET mfr_sndr = UPPER(mfr_sndr);
+UPDATE TBIDATA SET drugname = UPPER(drugname);
+UPDATE TBIDATA SET prod_ai = UPPER(prod_ai);
+UPDATE TBIDATA SET route_ad = UPPER(route_ad);
+UPDATE TBIDATA SET dose_form = UPPER(dose_form);
+UPDATE TBIDATA SET pt = UPPER(pt);
+UPDATE TBIDATA SET indi_pt = UPPER(indi_pt);
 
 
 --Create new drug table
